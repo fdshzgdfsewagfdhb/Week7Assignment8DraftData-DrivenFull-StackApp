@@ -6,7 +6,6 @@ import {
 } from "firebase/auth";
 
 import { auth } from "@/src/lib/firebase/clientApp";
-
 export function onAuthStateChanged(cb) {
   return _onAuthStateChanged(auth, cb);
 }

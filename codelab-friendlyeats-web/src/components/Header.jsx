@@ -29,6 +29,7 @@ function useUserSession(initialUser) {
 }
 
 
+
 export default function Header({ initialUser }) {
   const user = useUserSession(initialUser);
 
