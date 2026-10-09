@@ -59,6 +59,20 @@ function applyQueryFilters(q, { category, city, price, sort }) {
   return q;
 }
 
+export async function getRestaurantById(db, restaurantId) {
+  if (!restaurantId) {
+    console.log("Error: Invalid ID received: ", restaurantId);
+    return;
+  }
+  const docRef = doc(db, "restaurants", restaurantId);
+  const docSnap = await getDoc(docRef);
+  return {
+    ...docSnap.data(),
+    timestamp: docSnap.data().timestamp.toDate(),
+  };
+}
+
+
 export async function getRestaurants(db = db, filters = {}) {
   let q = query(collection(db, "restaurants"));
 
