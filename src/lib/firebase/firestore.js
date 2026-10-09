@@ -119,9 +119,6 @@ export function getRestaurantSnapshotById(restaurantId, cb) {
 }
 
 
-export function getRestaurantSnapshotById(restaurantId, cb) {
-  return;
-}
 
 export async function getReviewsByRestaurantId(db, restaurantId) {
   if (!restaurantId) {
