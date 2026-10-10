@@ -7,25 +7,30 @@ import { initializeServerApp, initializeApp } from "firebase/app";
 
 import { getAuth } from "firebase/auth";
 
-// Returns an authenticated client SDK instance for use in Server Side Rendering
-// and Static Site Generation
+/*  
+  Export an async function that returns the authenticated app instance for a given user.  
+
+  1. Read the client‑side session token from the cookie "__session".  
+  2. Initialize the server‑side Firebase app with that token.  
+  3. Attach Authentication API to the app instance.  
+  4. Wait for authentication state to be ready (required before calling `currentUser`).  
+  5. Return an object containing the app and the current user (or `null` if not logged in). */
 
 export async function getAuthenticatedAppForUser() {
+  // Step 1 – fetch the session ID stored in the client cookie
   const authIdToken = (await cookies()).get("__session")?.value;
 
-  // Firebase Server App is a new feature in the JS SDK that allows you to
-  // instantiate the SDK with credentials retrieved from the client & has
-  // other affordances for use in server environments.
+  // Step 2 – initialize the server‑side app with the token
   const firebaseServerApp = initializeServerApp(
-    // https://github.com/firebase/firebase-js-sdk/issues/8863#issuecomment-2751401913
     initializeApp(),
     {
       authIdToken,
     }
   );
-
+  // Step 3 – expose Auth methods on the app instance
   const auth = getAuth(firebaseServerApp);
+  // Step 4 – ensure authentication state is fully loaded
   await auth.authStateReady();
-
+   // Step 5 – return both the app and the current user
   return { firebaseServerApp, currentUser: auth.currentUser };
 }
