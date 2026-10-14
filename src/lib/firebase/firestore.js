@@ -28,19 +28,63 @@ export async function updateRestaurantImageReference(
     await updateDoc(restaurantRef, { photo: publicImageUrl });
   }
 }
-// Placeholder for a transaction‑based helper that would handle concurrent updates (e.g., when adding a new rating).
+
+
 const updateWithRating = async (
   transaction,
   docRef,
   newRatingDocument,
   review
 ) => {
-  return;
+  const restaurant = await transaction.get(docRef);
+  const data = restaurant.data();
+  const newNumRatings = data?.numRatings ? data.numRatings + 1 : 1;
+  const newSumRating = (data?.sumRating || 0) + Number(review.rating);
+  const newAverage = newSumRating / newNumRatings;
+
+  transaction.update(docRef, {
+    numRatings: newNumRatings,
+    sumRating: newSumRating,
+    avgRating: newAverage,
+  });
+
+  transaction.set(newRatingDocument, {
+    ...review,
+    timestamp: Timestamp.fromDate(new Date()),
+  });
 };
-// Intended to add a new review to a restaurant’s ratings collection; currently a stub.
+
 export async function addReviewToRestaurant(db, restaurantId, review) {
-  return;
+  if (!restaurantId) {
+    throw new Error("No restaurant ID has been provided.");
+  }
+
+  if (!review) {
+    throw new Error("A valid review has not been provided.");
+  }
+
+  try {
+    const docRef = doc(collection(db, "restaurants"), restaurantId);
+    const newRatingDocument = doc(
+      collection(db, `restaurants/${restaurantId}/ratings`),
+    );
+
+    // corrected line
+    await runTransaction(db, (transaction) =>
+      updateWithRating(transaction, docRef, newRatingDocument, review),
+    );
+  } catch (error) {
+    console.error(
+      "There was an error adding the rating to the restaurant",
+      error,
+    );
+    throw error;
+  }
 }
+
+
+
+
 // checks all the restaurants against category, city, price, and in what way to sort them, 
 // If the variable has a value, all restaurants will be checked and if they have that same value, they will be kept.
 function applyQueryFilters(q, { category, city, price, sort }) {
