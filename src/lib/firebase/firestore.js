@@ -23,38 +23,50 @@ export async function updateRestaurantImageReference(
   restaurantId,
   publicImageUrl
 ) {
+  // Creates a document reference to the restaurant document
   const restaurantRef = doc(collection(db, "restaurants"), restaurantId);
+  // Checks if the restaurant reference was successfully created
   if (restaurantRef) {
+    // Updates the restaurant's photo field with the provided public image URL
     await updateDoc(restaurantRef, { photo: publicImageUrl });
   }
 }
 
 
+// Function declaration: creates an async function named updateWithRating that processes rating data
 const updateWithRating = async (
   transaction,
   docRef,
   newRatingDocument,
   review
 ) => {
+  // Gets the restaurant document data from the database
   const restaurant = await transaction.get(docRef);
+  // Extracts the raw data from the restaurant document snapshot
   const data = restaurant.data();
+  // Calculates how many ratings the restaurant currently has (defaults to 1 if no count)
   const newNumRatings = data?.numRatings ? data.numRatings + 1 : 1;
+  // Calculates the new total rating score (previous sum + current review rating)
   const newSumRating = (data?.sumRating || 0) + Number(review.rating);
+  // Computes the new average rating based on the updated sum and count
   const newAverage = newSumRating / newNumRatings;
 
+  // Updates the restaurant document with the updated rating statistics
   transaction.update(docRef, {
     numRatings: newNumRatings,
     sumRating: newSumRating,
     avgRating: newAverage,
   });
 
+  // Sets up the new rating document (a separate collection item) with the review data and timestamp
   transaction.set(newRatingDocument, {
     ...review,
     timestamp: Timestamp.fromDate(new Date()),
   });
 };
-
+// Exports the async function that adds a review to a restaurant database entry
 export async function addReviewToRestaurant(db, restaurantId, review) {
+  // Checks that a restaurant ID was provided; throws error if missing
   if (!restaurantId) {
     throw new Error("No restaurant ID has been provided.");
   }
@@ -64,20 +76,29 @@ export async function addReviewToRestaurant(db, restaurantId, review) {
   }
 
   try {
+    // Creates a reference to the restaurant document (for validation/lookup)
     const docRef = doc(collection(db, "restaurants"), restaurantId);
+    // Creates a reference to the ratings collection document path
+    // (This defines where the rating document will live: restaurants/{restaurantId}/ratings/)
     const newRatingDocument = doc(
       collection(db, `restaurants/${restaurantId}/ratings`),
     );
 
-    // corrected line
+    // Runs a transaction that updates the rating document
+    // - Uses runTransaction to atomically update both the rating document
+    //   and related data within a single transaction
+    // - updateWithRating handles the actual rating logic (not shown in snippet)
     await runTransaction(db, (transaction) =>
       updateWithRating(transaction, docRef, newRatingDocument, review),
     );
+    // Catches any errors during the transaction or document operations
   } catch (error) {
+    //Logs the error details for debugging purposes
     console.error(
       "There was an error adding the rating to the restaurant",
       error,
     );
+    // Re-throws the original error so the caller can handle it
     throw error;
   }
 }
